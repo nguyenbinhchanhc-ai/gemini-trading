@@ -1,5 +1,6 @@
 # Stage 1: Build gemini-web-to-api (Go Service)
-FROM golang:alpine AS go-builderWORKDIR /app
+FROM golang:alpine AS go-builder
+WORKDIR /app
 # Cài đặt git để clone repo
 RUN apk add --no-cache git
 # Clone mã nguồn gemini-web-to-api
