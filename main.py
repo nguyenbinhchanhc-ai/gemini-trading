@@ -291,7 +291,8 @@ async def get_indicators():
                 "cmf": float(current_row['cmf']) if not pd.isna(current_row['cmf']) else None,
                 "obv": float(current_row['obv']) if not pd.isna(current_row['obv']) else None
             }
-        }    except Exception as e:
+        }
+    except Exception as e:
         logger.error(f"Error compiling technical indicators: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
