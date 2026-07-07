@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: gemini-trading-bot
+    runtime: docker
+    plan: free
+    region: singapore # Chọn Singapore để giảm độ trễ khi cào dữ liệu OKX và phản hồi
+    port: 10000
+    envVars:
+      # Cookies bắt buộc để gọi Gemini web
+      - key: GEMINI_1PSID
+        sync: false
+        placeholder: "Nhập giá trị cookie __Secure-1PSID lấy từ gemini.google.com"
+      - key: GEMINI_1PSIDTS
+        sync: false
+        placeholder: "Nhập giá trị cookie __Secure-1PSIDTS lấy từ gemini.google.com"
+        
+      # Cấu hình chu kỳ và tài sản
+      - key: TRADE_SYMBOL
+        value: BTC/USDT
+      - key: TIMEFRAME
+        value: 1h
+      - key: ANALYSIS_INTERVAL_MINUTES
+        value: "60"
+      - key: PORT
+        value: "10000"
+
+      # Cấu hình OKX (Để trống nếu chỉ dùng Paper Trading)
+      - key: OKX_USE_DEMO
+        value: "true"
+      - key: OKX_API_KEY
+        sync: false
+      - key: OKX_API_SECRET
+        sync: false
+      - key: OKX_API_PASSWORD
+        sync: false

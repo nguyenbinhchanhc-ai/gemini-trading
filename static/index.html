@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gemini Quantum Trading Console - Server trading bot tích hợp AI Gemini và OKX API với giao diện giám sát realtime.">
+    <title>Gemini Quantum Trading Console v3</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- TradingView Lightweight Charts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-bolt-lightning logo-icon"></i>
+                <div class="logo-text">
+                    <h1>GEMINI QUANTUM</h1>
+                    <span>TRADING BOT CONSOLE v3</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div id="connection-status" class="status-badge disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Đang kết nối...</span>
+                </div>
+                
+                <button id="btn-analyze-now" class="btn btn-primary" title="Yêu cầu Gemini phân tích ngay lập tức">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Phân Tích Ngay</span>
+                </button>
+                
+                <button id="btn-settings-toggle" class="btn btn-icon" title="Cấu hình Bot">
+                    <i class="fa-solid fa-gears"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main class="app-main">
+            
+            <!-- Market Ticker Ribbon (Sleek and Horizontal) -->
+            <div class="market-ticker-strip glass">
+                <div class="strip-item highlight">
+                    <span class="label">CẶP COIN</span>
+                    <span id="strip-symbol" class="val">BTC/USDT</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">GIÁ HIỆN TẠI</span>
+                    <span id="strip-price" class="val mono">$0.00</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">THAY ĐỔI 24H</span>
+                    <span id="strip-change" class="val mono">0.00%</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">VOL 24H</span>
+                    <span id="strip-volume" class="val mono">0</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">24H HIGH</span>
+                    <span id="strip-high" class="val mono">$0.00</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">24H LOW</span>
+                    <span id="strip-low" class="val mono">$0.00</span>
+                </div>
+                <div class="strip-item">
+                    <span class="label">LẦN CUỐI PHÂN TÍCH</span>
+                    <span id="strip-last-analysis" class="val">Chưa phân tích</span>
+                </div>
+            </div>
+
+            <!-- Dashboard Split (Chart + AI Terminal) -->
+            <section class="dashboard-split">
+                
+                <!-- Minimal Technical Indicators Table (Left) -->
+                <div class="panel chart-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-wave-square"></i> CHỈ BÁO KỸ THUẬT THỜI GIAN THỰC (OKX)</h2>
+                    </div>
+                    <div class="panel-body table-container-minimal">
+                        <table class="minimal-table">
+                            <thead>
+                                <tr>
+                                    <th>Chỉ Báo Kỹ Thuật</th>
+                                    <th class="text-right">Giá Trị Realtime</th>
+                                    <th class="text-right">Trạng Thái Kỹ Thuật</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- EMAs -->
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> EMA (9) - Xu hướng ngắn hạn</td>
+                                    <td id="ind-ema9" class="mono text-right val-col">--</td>
+                                    <td id="status-ema9" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> EMA (21) - Xu hướng ngắn hạn</td>
+                                    <td id="ind-ema21" class="mono text-right val-col">--</td>
+                                    <td id="status-ema21" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> EMA (50) - Xu hướng trung hạn</td>
+                                    <td id="ind-ema50" class="mono text-right val-col">--</td>
+                                    <td id="status-ema50" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> EMA (200) - Xu hướng dài hạn</td>
+                                    <td id="ind-ema200" class="mono text-right val-col">--</td>
+                                    <td id="status-ema200" class="text-right status-col">--</td>
+                                </tr>
+                                <!-- Momentum -->
+                                <tr>
+                                    <td><span class="ind-bullet yellow"></span> RSI (14) - Chỉ số sức mạnh giá</td>
+                                    <td id="ind-rsi" class="mono text-right val-col">--</td>
+                                    <td id="status-rsi" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet yellow"></span> Stochastic %K</td>
+                                    <td id="ind-stochk" class="mono text-right val-col">--</td>
+                                    <td id="status-stoch" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet yellow"></span> Stochastic %D (Tín hiệu)</td>
+                                    <td id="ind-stochd" class="mono text-right val-col">--</td>
+                                    <td id="status-stochd" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet yellow"></span> ATR (14) - Biên độ biến động</td>
+                                    <td id="ind-atr" class="mono text-right val-col">--</td>
+                                    <td id="status-atr" class="text-right status-col">--</td>
+                                </tr>
+                                <!-- MACD & Volatility -->
+                                <tr>
+                                    <td><span class="ind-bullet magenta"></span> MACD Line</td>
+                                    <td id="ind-macd" class="mono text-right val-col">--</td>
+                                    <td id="status-macd" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet magenta"></span> MACD Signal</td>
+                                    <td id="ind-macdsig" class="mono text-right val-col">--</td>
+                                    <td id="status-macdsig" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet magenta"></span> Bollinger Band Upper (Biên trên)</td>
+                                    <td id="ind-bbhigh" class="mono text-right val-col">--</td>
+                                    <td id="status-bbhigh" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet magenta"></span> Bollinger Band Lower (Biên dưới)</td>
+                                    <td id="ind-bblow" class="mono text-right val-col">--</td>
+                                    <td id="status-bblow" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet yellow"></span> ADX (14) - Sức mạnh xu hướng</td>
+                                    <td id="ind-adx" class="mono text-right val-col">--</td>
+                                    <td id="status-adx" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> CMF (20) - Dòng tiền Chaikin</td>
+                                    <td id="ind-cmf" class="mono text-right val-col">--</td>
+                                    <td id="status-cmf" class="text-right status-col">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ind-bullet cyan"></span> OBV - Khối lượng lũy tích</td>
+                                    <td id="ind-obv" class="mono text-right val-col">--</td>
+                                    <td id="status-obv" class="text-right status-col">--</td>
+                                </tr>
+                            </tbody>                        </table>
+                    </div>
+                </div>                <!-- Gemini AI Decision Terminal (Right) -->
+                <div class="panel ai-panel">
+                    <div class="panel-header sidebar-tabs">
+                        <button class="sidebar-tab-btn active" data-stab="stab-decision">
+                            <i class="fa-solid fa-brain"></i> Tín hiệu AI
+                        </button>
+                        <button class="sidebar-tab-btn" data-stab="stab-chat">
+                            <i class="fa-solid fa-comments"></i> Trò chuyện AI
+                        </button>
+                    </div>
+                    <div class="panel-body ai-body">
+                        
+                        <!-- Tab 1: Tín hiệu AI (Decision Terminal) -->
+                        <div id="stab-decision" class="sidebar-tab-content active">
+                            <!-- AI Recommendation State -->
+                            <div class="ai-signal-block">
+                                <div class="signal-title">Khuyến nghị hiện tại</div>
+                                <div id="ai-signal" class="signal-value signal-hold">HOLD</div>
+                                
+                                <div class="signal-confidence">
+                                    <div class="confidence-labels">
+                                        <span>Độ tin cậy</span>
+                                        <span id="ai-confidence">0%</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div id="ai-confidence-bar" class="progress-bar-fill" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TP / SL / Time / Risk Targets -->
+                            <div class="targets-grid">
+                                <div class="target-box tp">
+                                    <span class="target-label">Chốt Lời (Take Profit)</span>
+                                    <span id="ai-tp" class="target-value">--</span>
+                                </div>
+                                <div class="target-box sl">
+                                    <span class="target-label">Dừng Lỗ (Stop Loss)</span>
+                                    <span id="ai-sl" class="target-value">--</span>
+                                </div>
+                                <div class="target-box time">
+                                    <span class="target-label">Dự Kiến Chốt Lời</span>
+                                    <span id="ai-timeframe" class="target-value">--</span>
+                                </div>
+                                <div class="target-box risk">
+                                    <span class="target-label">Tỷ Lệ Rủi Ro</span>
+                                    <span id="ai-risk" class="target-value">--</span>
+                                </div>
+                            </div>
+                            <!-- Analysis Summary Indicators -->
+                            <div class="ai-indicator-summary">
+                                <div class="summary-title"><i class="fa-solid fa-tags"></i> Tóm tắt chỉ báo</div>
+                                <p id="ai-indicators-text">Đang chờ tín hiệu đầu tiên...</p>
+                            </div>
+
+                            <!-- Analysis Detail (Rationale) -->
+                            <div class="ai-rationale-block">
+                                <div class="rationale-title"><i class="fa-regular fa-comment-dots"></i> Luận điểm phân tích</div>
+                                <div class="rationale-content-container">
+                                    <p id="ai-rationale-text">Giao diện sẽ hiển thị lý do chi tiết và quyết định giao dịch do AI Gemini phân tích kỹ thuật dựa trên 30 nến gần nhất từ OKX.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Trò chuyện AI (Chat Box) -->
+                        <div id="stab-chat" class="sidebar-tab-content">
+                            <div class="chat-container-panel">
+                                <div id="chat-messages" class="chat-messages">
+                                    <div class="chat-msg ai">
+                                        <div class="msg-sender"><i class="fa-solid fa-robot"></i> Gemini Assistant</div>
+                                        <div class="msg-text">Xin chào! Tôi là trợ lý phân tích kỹ thuật Gemini. Tôi có thể giúp gì cho bạn phân tích thị trường hiện tại không? Hãy nhập câu hỏi dưới đây.</div>
+                                    </div>
+                                </div>
+                                <div class="chat-input-area">
+                                    <input type="text" id="chat-input-text" placeholder="Hỏi Gemini về xu hướng, RSI..." />
+                                    <button id="btn-send-chat" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>            </section>
+
+            <!-- Bottom Section (Logs & Trades Tabs) -->
+            <section class="bottom-section">
+                <div class="tabs-container">
+                    <div class="tab-header">
+                        <button class="tab-btn active" data-tab="tab-system-logs">
+                            <i class="fa-solid fa-terminal"></i> Nhật Ký Hệ Thống
+                        </button>
+                        <button class="tab-btn" data-tab="tab-analysis-history">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Phân Tích AI
+                        </button>
+                    </div>
+                    
+                    <div class="tab-content-container">
+                        
+                        <!-- System Logs Tab -->
+                        <div id="tab-system-logs" class="tab-content active">
+                            <div class="terminal-container">
+                                <div id="terminal-logs" class="terminal-logs">
+                                    <div class="log-line info">
+                                        <span class="log-time">[00:00:00]</span>
+                                        <span class="log-tag">[SYSTEM]</span>
+                                        <span class="log-text">Khởi tạo giao diện điều khiển. Đang đợi kết nối WebSocket...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Analysis History Tab -->
+                        <div id="tab-analysis-history" class="tab-content">
+                            <div class="table-responsive">
+                                <table class="trades-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời Gian</th>
+                                            <th>Cặp Coin</th>
+                                            <th>Khung Giờ</th>
+                                            <th>Khuyến Nghị</th>
+                                            <th>Độ Tin Cậy</th>
+                                            <th>Tóm Tắt Chỉ Báo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analysis-history-list">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">Chưa có dữ liệu phân tích nào được lưu. Hãy bấm 'Phân tích ngay'.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>                </div>
+            </section>
+        </main>
+
+        <!-- Settings Modal (Popup) -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-sliders"></i> Cấu hình Bot Trading</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <form id="settings-form" class="modal-body">
+                    <div class="form-group">
+                        <label for="input-symbol">Cặp Coin giao dịch (OKX Format):</label>
+                        <input type="text" id="input-symbol" value="BTC/USDT" placeholder="BTC/USDT" required>
+                        <small>Ví dụ: BTC/USDT, ETH/USDT, SOL/USDT</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="select-timeframe">Khung thời gian nến (Timeframe):</label>
+                        <select id="select-timeframe">
+                            <option value="1m">1 Phút (Testing)</option>
+                            <option value="5m">5 Phút</option>
+                            <option value="15m">15 Phút</option>
+                            <option value="1h" selected>1 Giờ (Khuyên dùng)</option>
+                            <option value="4h">4 Giờ</option>
+                            <option value="1d">1 Ngày</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-interval">Chu kỳ chạy Phân tích (Phút):</label>
+                        <input type="number" id="input-interval" value="60" min="1" required>
+                        <small>Bot sẽ chạy cào dữ liệu & phân tích AI định kỳ mỗi X phút.</small>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary close-modal-btn">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-primary">Lưu cấu hình</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
