@@ -170,7 +170,13 @@ class GeminiService:
             if not pd.isna(atr_val) and atr_val > 0:
                 tp_buy_s = close_price + 3 * atr_val
                 sl_buy_s = close_price - 2 * atr_val
-               # Xây dựng System Prompt định hướng cho Gemini
+                tp_sell_s = close_price - 3 * atr_val
+                sl_sell_s = close_price + 2 * atr_val
+            else:
+                tp_buy_s = close_price * 1.02
+                sl_buy_s = close_price * 0.98
+                tp_sell_s = close_price * 0.98
+                sl_sell_s = close_price * 1.02
             system_prompt = (
                 "Bạn là một chuyên gia phân tích kỹ thuật Price Action cấp cao chuyên nghiệp (Senior Price Action Technical Analyst). "
                 "Nhiệm vụ của bạn là nghiên cứu cấu trúc thị trường, phân tích hành động giá qua các cản kháng cự/hỗ trợ, xu hướng đa khung thời gian, sổ lệnh depth và các chỉ báo động lượng. "
