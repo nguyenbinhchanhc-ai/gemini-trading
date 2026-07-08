@@ -180,6 +180,10 @@ async def realtime_data_task():
                 df = gemini_service.prepare_indicators(ohlcv)
                 current_row = df.iloc[-1]
                 
+                # Debug log to trace NaNs on Render
+                nan_status = {col: df[col].isna().sum() for col in df.columns}
+                logger.info(f"[DEBUG INDICATORS] Close={current_row['close']}, RSI={current_row['rsi']}, EMA_9={current_row['ema_9']}, DataFrame shape={df.shape}, NaNs={nan_status}")
+                
                 indicators_data = {
                     "close": float(current_row['close']),
                     "rsi": float(current_row['rsi']) if not pd.isna(current_row['rsi']) else None,
