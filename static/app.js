@@ -62,6 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiRisk = document.getElementById('ai-risk');
     const aiIndicatorsText = document.getElementById('ai-indicators-text');
     const aiRationaleText = document.getElementById('ai-rationale-text');    
+    
+    // Sentiment & Orderbook DOM Elements
+    const sentBidBar = document.getElementById('sentiment-bid-bar');
+    const sentBidPct = document.getElementById('sentiment-bid-percentage');
+    const sentAskBar = document.getElementById('sentiment-ask-bar');
+    const sentAskPct = document.getElementById('sentiment-ask-percentage');
+    const sentBidWall = document.getElementById('sent-bid-wall');
+    const sentBidWallVol = document.getElementById('sent-bid-wall-vol');
+    const sentAskWall = document.getElementById('sent-ask-wall');
+    const sentAskWallVol = document.getElementById('sent-ask-wall-vol');
+    const sentLsRatio = document.getElementById('sent-ls-ratio');
+    const sentLsStatus = document.getElementById('sent-ls-status');
+    const sentTakerRatio = document.getElementById('sent-taker-ratio');
+    const sentTakerVols = document.getElementById('sent-taker-vols');
+
     // Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -310,6 +325,80 @@ document.addEventListener('DOMContentLoaded', () => {
             setStatusCell(statusObv, "--", "status-neutral");
         }
     }
+
+    function updateSentimentUI(orderbook, sentiment) {
+        // 1. Cập nhật Orderbook Pressure Bar
+        if (orderbook && orderbook.bid_percentage !== undefined) {
+            const bidPct = orderbook.bid_percentage;
+            const askPct = orderbook.ask_percentage;
+            
+            sentBidBar.style.width = `${bidPct}%`;
+            sentAskBar.style.width = `${askPct}%`;
+            
+            sentBidPct.innerText = `BUY ${bidPct}%`;
+            sentAskPct.innerText = `SELL ${askPct}%`;
+            
+            // Tường mua/bán
+            sentBidWall.innerText = `$${orderbook.strongest_bid_price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            sentBidWallVol.innerText = `Khối lượng: ${orderbook.strongest_bid_vol.toFixed(4)} BTC`;
+            
+            sentAskWall.innerText = `$${orderbook.strongest_ask_price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            sentAskWallVol.innerText = `Khối lượng: ${orderbook.strongest_ask_vol.toFixed(4)} BTC`;
+        } else {
+            sentBidBar.style.width = `50%`;
+            sentAskBar.style.width = `50%`;
+            sentBidPct.innerText = `BUY --`;
+            sentAskPct.innerText = `SELL --`;
+            sentBidWall.innerText = '--';
+            sentBidWallVol.innerText = 'Khối lượng: --';
+            sentAskWall.innerText = '--';
+            sentAskWallVol.innerText = 'Khối lượng: --';
+        }
+        
+        // 2. Cập nhật Sentiment Rubik
+        if (sentiment && sentiment.long_short_ratio !== undefined) {
+            const lsRatio = sentiment.long_short_ratio;
+            sentLsRatio.innerText = lsRatio.toFixed(4);
+            
+            // Gán nhãn trạng thái Long/Short
+            if (lsRatio > 1.05) {
+                sentLsStatus.innerText = "Phe LONG áp đảo";
+                sentLsStatus.className = "metric-sub text-green";
+            } else if (lsRatio < 0.95) {
+                sentLsStatus.innerText = "Phe SHORT áp đảo";
+                sentLsStatus.className = "metric-sub text-red";
+            } else {
+                sentLsStatus.innerText = "Tâm lý L/S cân bằng";
+                sentLsStatus.className = "metric-sub";
+            }
+            
+            // Taker flow
+            const takerRatio = sentiment.taker_buy_sell_ratio;
+            sentTakerRatio.innerText = takerRatio.toFixed(4);
+            
+            // Format volume của taker
+            const buyVolStr = sentiment.taker_buy_vol >= 1000 ? `${(sentiment.taker_buy_vol / 1000).toFixed(2)}k` : sentiment.taker_buy_vol.toFixed(2);
+            const sellVolStr = sentiment.taker_sell_vol >= 1000 ? `${(sentiment.taker_sell_vol / 1000).toFixed(2)}k` : sentiment.taker_sell_vol.toFixed(2);
+            sentTakerVols.innerText = `Mua: ${buyVolStr} | Bán: ${sellVolStr}`;
+            
+            if (takerRatio > 1.02) {
+                sentTakerRatio.className = "metric-value text-green";
+            } else if (takerRatio < 0.98) {
+                sentTakerRatio.className = "metric-value text-red";
+            } else {
+                sentTakerRatio.className = "metric-value";
+            }
+        } else {
+            sentLsRatio.innerText = '--';
+            sentLsStatus.innerText = 'Trạng thái: --';
+            sentLsStatus.className = "metric-sub";
+            
+            sentTakerRatio.innerText = '--';
+            sentTakerVols.innerText = 'Mua: -- | Bán: --';
+            sentTakerRatio.className = "metric-value";
+        }
+    }
+
     // --- Pull Indicators HTTP fallback ---
     async function fetchIndicators() {
         try {
@@ -318,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'SUCCESS') {
                 updateTickerUI(data.ticker);
                 updateIndicatorsUI(data);
+                updateSentimentUI(data.orderbook, data.sentiment);
             }
         } catch (error) {
             console.error("Error fetching indicators:", error);
@@ -348,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTickerUI(message.data);
             } else if (message.type === 'INDICATORS') {
                 updateIndicatorsUI(message.data);
+                updateSentimentUI(message.data.orderbook, message.data.sentiment);
             }
         };
 

@@ -1141,3 +1141,167 @@ body {
 .target-box.time, .target-box.risk {
     border-color: rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ==========================================================================
+   ORDERBOOK & SENTIMENT PANEL STYLES
+   ========================================================================== */
+.sentiment-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-main);
+    transition: var(--transition-smooth);
+}
+
+.sentiment-panel:hover {
+    border-color: var(--border-glow);
+}
+
+.sentiment-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Bid/Ask Pressure Bar */
+.sentiment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.sentiment-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.pressure-bar-container {
+    height: 36px;
+    display: flex;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.pressure-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.5s ease-in-out;
+    height: 100%;
+}
+
+.pressure-bar.bids {
+    background: linear-gradient(90deg, rgba(0, 230, 118, 0.15), rgba(0, 230, 118, 0.35));
+    border-right: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.pressure-bar.asks {
+    background: linear-gradient(90deg, rgba(255, 23, 68, 0.35), rgba(255, 23, 68, 0.15));
+}
+
+.pressure-label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    padding: 0 1rem;
+}
+
+.pressure-bar.bids .pressure-label {
+    color: var(--color-green);
+}
+
+.pressure-bar.asks .pressure-label {
+    color: var(--color-red);
+}
+
+/* Detailed Metrics Grid */
+.sentiment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .sentiment-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition-fast);
+}
+
+.metric-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.metric-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--color-cyan);
+}
+
+.metric-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.metric-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+}
+
+.metric-value {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: #fff;
+}
+
+.metric-value.text-green {
+    color: var(--color-green) !important;
+}
+
+.metric-value.text-red {
+    color: var(--color-red) !important;
+}
+
+.metric-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.dashboard-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}

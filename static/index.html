@@ -85,8 +85,10 @@
             <!-- Dashboard Split (Chart + AI Terminal) -->
             <section class="dashboard-split">
                 
-                <!-- Minimal Technical Indicators Table (Left) -->
-                <div class="panel chart-panel">
+                <!-- Left Column (Indicators & Orderbook) -->
+                <div class="dashboard-left-column">
+                    <!-- Minimal Technical Indicators Table (Left) -->
+                    <div class="panel chart-panel">
                     <div class="panel-header">
                         <h2><i class="fa-solid fa-wave-square"></i> CHỈ BÁO KỸ THUẬT THỜI GIAN THỰC (OKX)</h2>
                     </div>
@@ -178,10 +180,74 @@
                                     <td id="ind-obv" class="mono text-right val-col">--</td>
                                     <td id="status-obv" class="text-right status-col">--</td>
                                 </tr>
-                            </tbody>                        </table>
+                            </tbody>
+                        </table>
                     </div>
-                </div>                <!-- Gemini AI Decision Terminal (Right) -->
-                <div class="panel ai-panel">
+                </div>
+                
+                <!-- Orderbook & Market Sentiment Panel -->
+                <div class="panel sentiment-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-gauge-high"></i> TÂM LÝ THỊ TRƯỜNG & SỔ LỆNH (REALTIME)</h2>
+                    </div>
+                    <div class="panel-body sentiment-body">
+                        <!-- Bid/Ask Pressure Bar -->
+                        <div class="sentiment-section">
+                            <div class="sentiment-section-title">Áp Lực Sổ Lệnh (Bids vs Asks - Depth 20)</div>
+                            <div class="pressure-bar-container">
+                                <div id="sentiment-bid-bar" class="pressure-bar bids" style="width: 50%">
+                                    <span id="sentiment-bid-percentage" class="pressure-label">BUY 50%</span>
+                                </div>
+                                <div id="sentiment-ask-bar" class="pressure-bar asks" style="width: 50%">
+                                    <span id="sentiment-ask-percentage" class="pressure-label">SELL 50%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detailed Metrics Grid -->
+                        <div class="sentiment-grid">
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                                <div class="metric-info">
+                                    <div class="metric-title">Tường Mua Mạnh Nhất (Support Wall)</div>
+                                    <div class="metric-value text-green mono" id="sent-bid-wall">--</div>
+                                    <div class="metric-sub" id="sent-bid-wall-vol">Khối lượng: --</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                                <div class="metric-info">
+                                    <div class="metric-title">Tường Bán Mạnh Nhất (Resistance Wall)</div>
+                                    <div class="metric-value text-red mono" id="sent-ask-wall">--</div>
+                                    <div class="metric-sub" id="sent-ask-wall-vol">Khối lượng: --</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                                <div class="metric-info">
+                                    <div class="metric-title">Tỷ Lệ Long/Short Tài Khoản (Margin L/S)</div>
+                                    <div class="metric-value mono" id="sent-ls-ratio">--</div>
+                                    <div class="metric-sub" id="sent-ls-status">Trạng thái: --</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-icon"><i class="fa-solid fa-arrows-left-right-to-line"></i></div>
+                                <div class="metric-info">
+                                    <div class="metric-title">Khối Lượng Mua/Bán Taker (1h Taker Flow)</div>
+                                    <div class="metric-value mono" id="sent-taker-ratio">--</div>
+                                    <div class="metric-sub" id="sent-taker-vols">Mua: -- | Bán: --</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- End Left Column -->
+            
+            <!-- Gemini AI Decision Terminal (Right) -->
+            <div class="panel ai-panel">
                     <div class="panel-header sidebar-tabs">
                         <button class="sidebar-tab-btn active" data-stab="stab-decision">
                             <i class="fa-solid fa-brain"></i> Tín hiệu AI

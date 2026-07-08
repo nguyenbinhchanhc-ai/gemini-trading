@@ -1,6 +1,7 @@
 import ccxt.async_support as ccxt
 import logging
 import time
+import aiohttp
 from typing import Dict, Any, List
 import config
 
@@ -254,3 +255,101 @@ class OKXService:
                 "volume_24h": 12500.0,
                 "change_percentage_24h": -0.5
             }
+
+    async def get_order_book(self, limit: int = 20) -> Dict[str, Any]:
+        """
+        Lấy dữ liệu Sổ lệnh (Orderbook) từ OKX và tính toán áp lực mua/bán + tường giá.
+        """
+        try:
+            order_book = await self.client.fetch_order_book(self.symbol, limit=limit)
+            bids = order_book.get('bids', [])
+            asks = order_book.get('asks', [])
+            
+            # Tính tổng volume
+            bid_vol_total = sum(float(b[1]) for b in bids)
+            ask_vol_total = sum(float(a[1]) for a in asks)
+            
+            # Tính tỷ lệ đặt lệnh mua/bán (%)
+            total_vol = bid_vol_total + ask_vol_total
+            bid_percentage = (bid_vol_total / total_vol * 100.0) if total_vol > 0 else 50.0
+            ask_percentage = 100.0 - bid_percentage
+            
+            # Tìm tường mua/bán mạnh nhất (mức giá có volume lớn nhất)
+            strongest_bid = max(bids, key=lambda x: float(x[1])) if bids else [0.0, 0.0]
+            strongest_ask = max(asks, key=lambda x: float(x[1])) if asks else [0.0, 0.0]
+            
+            return {
+                "bid_percentage": round(bid_percentage, 2),
+                "ask_percentage": round(ask_percentage, 2),
+                "strongest_bid_price": float(strongest_bid[0]),
+                "strongest_bid_vol": float(strongest_bid[1]),
+                "strongest_ask_price": float(strongest_ask[0]),
+                "strongest_ask_vol": float(strongest_ask[1])
+            }
+        except Exception as e:
+            logger.error(f"Error fetching order book from OKX: {e}")
+            # Fallback mock orderbook
+            return {
+                "bid_percentage": 50.0,
+                "ask_percentage": 50.0,
+                "strongest_bid_price": 0.0,
+                "strongest_bid_vol": 0.0,
+                "strongest_ask_price": 0.0,
+                "strongest_ask_vol": 0.0
+            }
+
+    async def get_rubik_sentiment(self) -> Dict[str, Any]:
+        """
+        Lấy thông tin Tỷ lệ Long/Short và Taker Volume từ OKX Rubik public API.
+        """
+        coin = self.symbol.split('/')[0]
+        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik
+        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=1h"
+        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&period=1h"
+        
+        headers = {"User-Agent": "Mozilla/5.0"}
+        sentiment_data = {
+            "long_short_ratio": 1.0,
+            "taker_buy_vol": 0.0,
+            "taker_sell_vol": 0.0,
+            "taker_buy_sell_ratio": 1.0
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # 1. Gọi Long/Short Ratio
+                async with session.get(url_ls, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        res_json = await resp.json()
+                        data_list = res_json.get('data', [])
+                        if data_list:
+                            # Lấy phần tử mới nhất
+                            latest = data_list[-1]
+                            sentiment_data["long_short_ratio"] = float(latest.get('ratio', 1.0))
+                
+                # 2. Gọi Taker Volume
+                async with session.get(url_taker, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        res_json = await resp.json()
+                        data_list = res_json.get('data', [])
+                        if data_list:
+                            latest = data_list[-1]
+                            buy_vol = float(latest.get('buyVol', 0.0))
+                            sell_vol = float(latest.get('sellVol', 0.0))
+                            if buy_vol == 0.0 and sell_vol == 0.0:
+                                buy_vol = float(latest.get('buyVolume', 0.0))
+                                sell_vol = float(latest.get('sellVolume', 0.0))
+                            
+                            sentiment_data["taker_buy_vol"] = buy_vol
+                            sentiment_data["taker_sell_vol"] = sell_vol
+                            if sell_vol > 0:
+                                sentiment_data["taker_buy_sell_ratio"] = round(buy_vol / sell_vol, 4)
+                            else:
+                                sentiment_data["taker_buy_sell_ratio"] = 1.0
+                                
+            return sentiment_data
+        except Exception as e:
+            logger.error(f"Error fetching Rubik sentiment from OKX: {e}")
+            # Fallback mock sentiment
+            return sentiment_data
+
