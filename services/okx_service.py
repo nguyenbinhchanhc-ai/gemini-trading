@@ -303,9 +303,9 @@ class OKXService:
         Lấy thông tin Tỷ lệ Long/Short và Taker Volume từ OKX Rubik public API.
         """
         coin = self.symbol.split('/')[0]
-        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik với period=1H và instType=SPOT
-        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=1H"
-        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&instType=SPOT&period=1H"
+        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik với period=5m và instType=SPOT
+        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=5m"
+        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&instType=SPOT&period=5m"
         
         headers = {"User-Agent": "Mozilla/5.0"}
         sentiment_data = {
