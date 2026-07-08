@@ -170,20 +170,13 @@ class GeminiService:
             if not pd.isna(atr_val) and atr_val > 0:
                 tp_buy_s = close_price + 3 * atr_val
                 sl_buy_s = close_price - 2 * atr_val
-                tp_sell_s = close_price - 3 * atr_val
-                sl_sell_s = close_price + 2 * atr_val
-            else:
-                tp_buy_s = close_price * 1.02
-                sl_buy_s = close_price * 0.98
-                tp_sell_s = close_price * 0.98
-                sl_sell_s = close_price * 1.02
-
-            # Xây dựng System Prompt định hướng cho Gemini
+               # Xây dựng System Prompt định hướng cho Gemini
             system_prompt = (
-                "Bạn là một chuyên gia quản lý rủi ro tài chính cấp cao (Principal Risk Officer & Quant Critic). "
-                "Nhiệm vụ của bạn là soi lỗi cấu trúc kỹ thuật, tự phản biện phản ngược luận điểm tăng/giảm để tìm ra bẫy giá (bulltrap, beartrap, fakeout) và các lỗ hổng rủi ro trên thị trường. "
-                "Bạn bắt buộc phải đánh giá tỷ lệ rủi ro (risk_percentage) và độ tin cậy (confidence - xác suất thắng thực tế) từ 0% đến 100% một cách khắt khe nhất dựa trên dữ liệu thực tế, "
-                "tuyệt đối không gom cụm an toàn ở mức 60-70%. Trả về kết quả ở định dạng JSON nghiêm ngặt với cấu trúc được định nghĩa sẵn, không kèm giải thích ngoài JSON."
+                "Bạn là một chuyên gia phân tích kỹ thuật Price Action cấp cao chuyên nghiệp (Senior Price Action Technical Analyst). "
+                "Nhiệm vụ của bạn là nghiên cứu cấu trúc thị trường, phân tích hành động giá qua các cản kháng cự/hỗ trợ, xu hướng đa khung thời gian, sổ lệnh depth và các chỉ báo động lượng. "
+                "Hãy tự do phân tích, suy luận và đưa ra quyết định giao dịch khách quan theo cách nghĩ riêng của bạn. "
+                "Hãy tự đánh giá tỷ lệ rủi ro (risk_percentage) và độ tin cậy (confidence) một cách linh hoạt, sát với thực tế thị trường. "
+                "Trả về kết quả ở định dạng JSON nghiêm ngặt với cấu trúc được định nghĩa sẵn, không kèm giải thích ngoài JSON."
             )
             
             rsi_text = "N/A" if pd.isna(current_row['rsi']) else f"{current_row['rsi']:.1f}"
@@ -191,6 +184,8 @@ class GeminiService:
             macd_sig_text = "N/A" if pd.isna(current_row['macd_signal']) else f"{current_row['macd_signal']:.2f}"
             bb_high_text = "N/A" if pd.isna(current_row['bb_high']) else f"{current_row['bb_high']:.2f}"
             bb_low_text = "N/A" if pd.isna(current_row['bb_low']) else f"{current_row['bb_low']:.2f}"
+            ema9_text = "N/A" if pd.isna(current_row['ema_9']) else f"{current_row['ema_9']:.2f}"
+            ema21_text = "N/A" if pd.isna(current_row['ema_21']) else f"{current_row['ema_21']:.2f}"
             ema50_text = "N/A" if pd.isna(current_row['ema_50']) else f"{current_row['ema_50']:.2f}"
             ema200_text = "N/A" if pd.isna(current_row['ema_200']) else f"{current_row['ema_200']:.2f}"
             atr_text = "N/A" if pd.isna(current_row['atr']) else f"{current_row['atr']:.2f}"
@@ -198,6 +193,7 @@ class GeminiService:
             stoch_d_text = "N/A" if pd.isna(current_row['stoch_d']) else f"{current_row['stoch_d']:.1f}"
             adx_text = "N/A" if pd.isna(current_row['adx']) else f"{current_row['adx']:.1f}"
             cmf_text = "N/A" if pd.isna(current_row['cmf']) else f"{current_row['cmf']:.2f}"
+            obv_text = "N/A" if pd.isna(current_row['obv']) else f"{current_row['obv']:.0f}"
             
             # Xây dựng User Prompt
             user_prompt = f"""
@@ -209,11 +205,12 @@ THÔNG TIN KHUNG NGẮN HẠN {config.TIMEFRAME} (HIỆN TẠI):
 - RSI (14): {rsi_text}
 - MACD Line: {macd_text} | MACD Signal: {macd_sig_text}
 - Bollinger Band High: {bb_high_text} | Bollinger Band Low: {bb_low_text}
-- EMA 50: {ema50_text} | EMA 200: {ema200_text}
+- EMA 9: {ema9_text} | EMA 21: {ema21_text} | EMA 50: {ema50_text} | EMA 200: {ema200_text}
 - ATR (14): {atr_text}
 - Stochastic %K: {stoch_k_text} | Stochastic %D: {stoch_d_text}
 - ADX (14) (Độ mạnh xu hướng): {adx_text}
-- CMF (20) (Dòng tiền): {cmf_text}
+- CMF (20) (Dòng tiền Chaikin): {cmf_text}
+- OBV (Khối lượng lũy tích): {obv_text}
 
 THÔNG TIN KHUNG TRUNG HẠN 4H:
 {context_4h}
@@ -232,19 +229,16 @@ Dữ liệu nến và chỉ báo 1h (30 chu kỳ gần nhất):
 
 Nhiệm vụ:
 Đánh giá xu hướng ngắn hạn và tự phản biện rủi ro để trả về quyết định giao dịch dưới dạng JSON với các trường sau:
-1. "recommendation": Chuỗi chữ in hoa, chỉ được chọn một trong các giá trị: "BUY", "SELL", "HOLD". 
-   *QUY TẮC CỐT LÕI*: Nếu độ tin cậy (confidence) cho lệnh BUY hoặc SELL dưới 60%, bạn BẮT BUỘC phải trả về "HOLD" và đặt take_profit, stop_loss, estimated_timeframe là null để lọc nhiễu thị trường.
-2. "confidence": Số nguyên từ 0 đến 100 đại diện cho độ tự tin (xác suất thắng thực tế sau khi đã trừ đi các yếu tố rủi ro phản biện). Đánh giá khắt khe, dao động rộng từ 0-100% dựa trên chất lượng tín hiệu.
-3. "take_profit": Giá chốt lời đề xuất (kiểu số float hoặc null nếu khuyên HOLD). Bạn nên ưu thiện điều chỉnh mốc TP toán học dựa trên các cản hỗ trợ/kháng cự thực tế của đa khung thời gian.
-4. "stop_loss": Giá dừng lỗ đề xuất (kiểu số float hoặc null nếu khuyên HOLD). Bạn nên ưu thiện điều chỉnh mốc SL toán học dựa trên các cản hỗ trợ/kháng cự thực tế của đa khung thời gian.
+1. "recommendation": Chuỗi chữ in hoa, chỉ được chọn một trong các giá trị: "BUY", "SELL", "HOLD". Bạn tự do quyết định hành động này dựa trên phân tích kỹ thuật Price Action của mình.
+2. "confidence": Số nguyên từ 0 đến 100 đại diện cho độ tự tin (xác suất thắng thực tế sau khi đã trừ đi các yếu tố rủi ro phản biện). Hãy đánh giá tự do theo suy nghĩ của bạn, không bị ràng buộc bởi ngưỡng cố định.
+3. "take_profit": Giá chốt lời đề xuất (kiểu số float hoặc null nếu khuyên HOLD). Bạn nên ưu tiên điều chỉnh mốc TP toán học dựa trên các cản hỗ trợ/kháng cự thực tế của đa khung thời gian.
+4. "stop_loss": Giá dừng lỗ đề xuất (kiểu số float hoặc null nếu khuyên HOLD). Bạn nên ưu tiên điều chỉnh mốc SL toán học dựa trên các cản hỗ trợ/kháng cự thực tế của đa khung thời gian.
 5. "indicators_summary": Tóm tắt ngắn gọn tình trạng chỉ báo (ví dụ: "ADX báo xu hướng yếu, CMF dòng tiền phân phối").
 6. "rationale": Giải thích chi tiết bằng tiếng Việt theo định dạng bắt buộc gồm 2 phần rõ rệt:
-   - [LUẬN ĐIỂM]: Luận điểm cốt lõi ủng hộ quyết định giao dịch này (kết hợp phân tích đa khung thời gian và dòng tiền).
+   - [LUẬN ĐIỂM]: Luận điểm cốt lõi ủng hộ quyết định giao dịch này (kết hợp phân tích đa khung thời gian, cấu trúc Price Action và dòng tiền).
    - [PHẢN BIỆN RỦI RO]: Tự phản biện tìm ra các nhược điểm, bẫy giá tiềm ẩn (bulltrap/beartrap), phân kỳ giả hoặc rủi ro vĩ mô của khung thời gian Daily/4h để cảnh báo người dùng.
 7. "estimated_timeframe": Chuỗi ước tính thời gian chốt lời (ví dụ: "6-12h", "1-2 ngày", "3-5 ngày" hoặc null nếu khuyên HOLD).
-8. "risk_percentage": Số nguyên từ 0 đến 100 đại diện cho tỷ lệ rủi ro thực tế của lệnh (tính dựa trên khoảng cách cắt lỗ, lực đè của cản kháng cự/hỗ trợ và độ biến động ATR). Đánh giá khách quan và khắt khe từ 0-100%.
-
-Chú ý: Trả về duy nhất đối tượng JSON hợp lệ. Không viết codeblock ```json ... ```, chỉ xuất chuỗi JSON trực tiếp.
+8. "risk_percentage": Số nguyên từ 0 đến 100 đại diện cho tỷ lệ rủi ro thực tế của lệnh (tính dựa trên khoảng cách cắt lỗ, lực đè của cản kháng cự/hỗ trợ và độ biến động ATR). Hãy đánh giá tự do theo suy nghĩ riêng của bạn.
 """
 
             logger.info("Sending market analysis request to local Gemini proxy...")

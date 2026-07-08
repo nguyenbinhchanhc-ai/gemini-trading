@@ -46,48 +46,16 @@ class OKXService:
     async def get_market_data(self, limit: int = 100, timeframe: str = None) -> List[List[float]]:
         """
         Lấy dữ liệu nến (OHLCV) từ OKX bất đồng bộ cho một timeframe cụ thể.
-        Nếu gặp lỗi (ví dụ bị chặn IP), tự động trả về dữ liệu nến giả lập để giữ Web UI hoạt động.
+        Luôn trả về dữ liệu thật từ sàn để đảm bảo tính minh bạch, quăng lỗi nếu không kết nối được.
         """
         tf = timeframe or config.TIMEFRAME
         try:
             ohlcv = await self.client.fetch_ohlcv(self.symbol, tf, limit=limit)
             return ohlcv
         except Exception as e:
-            logger.error(f"Error fetching OHLCV ({tf}) from OKX (Using fallback dummy data): {e}")
-            
-            # Tạo dữ liệu nến giả lập (dummy ohlcv) để biểu đồ TradingView vẫn hiển thị
-            dummy_ohlcv = []
-            # Ước lượng khoảng thời gian lùi lại (ví dụ 1h = 3600s)
-            seconds_per_candle = 3600
-            if tf == '1m': seconds_per_candle = 60
-            elif tf == '5m': seconds_per_candle = 300
-            elif tf == '15m': seconds_per_candle = 900
-            elif tf == '4h': seconds_per_candle = 14400
-            elif tf == '1d': seconds_per_candle = 86400
-            
-            base_time = int(time.time() * 1000) - (limit * seconds_per_candle * 1000)
-            
-            # Tạo chuỗi giá giả lập dao động quanh vùng 60,000 USD
-            start_price = 60000.0
-            for i in range(limit):
-                change = (i % 7 - 3) * 15.0 # Dao động nhỏ
-                open_p = start_price + change
-                open_p = start_price + change
-                close_p = open_p + (i % 5 - 2) * 12.0
-                high_p = max(open_p, close_p) + 25.0
-                low_p = min(open_p, close_p) - 25.0
-                
-                dummy_ohlcv.append([
-                    base_time + (i * seconds_per_candle * 1000), # timestamp
-                    open_p,
-                    high_p,
-                    low_p,
-                    close_p,
-                    150.0 # volume
-                ])
-                start_price = close_p
-                
-            return dummy_ohlcv
+            logger.error(f"Error fetching OHLCV ({tf}) from OKX: {e}")
+            raise e
+
     async def get_ticker_price(self) -> float:
         """
         Lấy giá hiện tại (ticker price) bất đồng bộ.
@@ -96,10 +64,8 @@ class OKXService:
             ticker = await self.client.fetch_ticker(self.symbol)
             return float(ticker['last'])
         except Exception as e:
-            logger.error(f"Error fetching ticker from OKX (Using fallback price): {e}")
-            # Trả về giá đóng cửa của nến giả lập cuối cùng
-            ohlcv = await self.get_market_data(limit=1)
-            return ohlcv[-1][4]
+            logger.error(f"Error fetching ticker from OKX: {e}")
+            raise e
 
     async def get_balance(self) -> Dict[str, float]:
         """
@@ -246,14 +212,7 @@ class OKXService:
             }
         except Exception as e:
             logger.error(f"Error fetching ticker 24h from OKX: {e}")
-            # Fallback mock ticker data
-            return {
-                "current_price": 62500.0,
-                "high_24h": 63000.0,
-                "low_24h": 62000.0,
-                "volume_24h": 12500.0,
-                "change_percentage_24h": -0.5
-            }
+            raise e
 
     async def get_order_book(self, limit: int = 20) -> Dict[str, Any]:
         """
@@ -287,13 +246,5 @@ class OKXService:
             }
         except Exception as e:
             logger.error(f"Error fetching order book from OKX: {e}")
-            # Fallback mock orderbook
-            return {
-                "bid_percentage": 50.0,
-                "ask_percentage": 50.0,
-                "strongest_bid_price": 0.0,
-                "strongest_bid_vol": 0.0,
-                "strongest_ask_price": 0.0,
-                "strongest_ask_vol": 0.0
-            }
+            raise e
 
