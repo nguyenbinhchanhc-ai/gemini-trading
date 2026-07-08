@@ -303,9 +303,9 @@ class OKXService:
         Lấy thông tin Tỷ lệ Long/Short và Taker Volume từ OKX Rubik public API.
         """
         coin = self.symbol.split('/')[0]
-        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik
-        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=1h"
-        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&period=1h"
+        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik với period=1H và instType=SPOT
+        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=1H"
+        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&instType=SPOT&period=1H"
         
         headers = {"User-Agent": "Mozilla/5.0"}
         sentiment_data = {
@@ -323,9 +323,9 @@ class OKXService:
                         res_json = await resp.json()
                         data_list = res_json.get('data', [])
                         if data_list:
-                            # Lấy phần tử mới nhất
-                            latest = data_list[-1]
-                            sentiment_data["long_short_ratio"] = float(latest.get('ratio', 1.0))
+                            # Phần tử đầu tiên (index 0) là mới nhất: [timestamp, ratio]
+                            latest = data_list[0]
+                            sentiment_data["long_short_ratio"] = float(latest[1])
                 
                 # 2. Gọi Taker Volume
                 async with session.get(url_taker, headers=headers, timeout=5) as resp:
@@ -333,12 +333,10 @@ class OKXService:
                         res_json = await resp.json()
                         data_list = res_json.get('data', [])
                         if data_list:
-                            latest = data_list[-1]
-                            buy_vol = float(latest.get('buyVol', 0.0))
-                            sell_vol = float(latest.get('sellVol', 0.0))
-                            if buy_vol == 0.0 and sell_vol == 0.0:
-                                buy_vol = float(latest.get('buyVolume', 0.0))
-                                sell_vol = float(latest.get('sellVolume', 0.0))
+                            # Phần tử đầu tiên (index 0) là mới nhất: [timestamp, buyVol, sellVol]
+                            latest = data_list[0]
+                            buy_vol = float(latest[1])
+                            sell_vol = float(latest[2])
                             
                             sentiment_data["taker_buy_vol"] = buy_vol
                             sentiment_data["taker_sell_vol"] = sell_vol
