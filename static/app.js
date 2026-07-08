@@ -35,7 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const indCmf = document.getElementById('ind-cmf');
     const indObv = document.getElementById('ind-obv');
     
-    // Indicators Status Column DOM Elements    const statusEma9 = document.getElementById('status-ema9');
+    // Indicators Status Column DOM Elements
+    const statusEma9 = document.getElementById('status-ema9');
     const statusEma21 = document.getElementById('status-ema21');
     const statusEma50 = document.getElementById('status-ema50');
     const statusEma200 = document.getElementById('status-ema200');
@@ -51,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusCmf = document.getElementById('status-cmf');
     const statusObv = document.getElementById('status-obv');
     
-    // AI Panel elements    const aiSignal = document.getElementById('ai-signal');
+    // AI Panel elements
+    const aiSignal = document.getElementById('ai-signal');
     const aiConfidence = document.getElementById('ai-confidence');
     const aiConfidenceBar = document.getElementById('ai-confidence-bar');
     const aiTp = document.getElementById('ai-tp');
