@@ -1,7 +1,6 @@
 import ccxt.async_support as ccxt
 import logging
 import time
-import aiohttp
 from typing import Dict, Any, List
 import config
 
@@ -297,57 +296,4 @@ class OKXService:
                 "strongest_ask_price": 0.0,
                 "strongest_ask_vol": 0.0
             }
-
-    async def get_rubik_sentiment(self) -> Dict[str, Any]:
-        """
-        Lấy thông tin Tỷ lệ Long/Short và Taker Volume từ OKX Rubik public API.
-        """
-        coin = self.symbol.split('/')[0]
-        # Sử dụng aiohttp để gọi trực tiếp các API public Rubik với period=5m và instType=SPOT
-        url_ls = f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy={coin}&period=5m"
-        url_taker = f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={coin}&instType=SPOT&period=5m"
-        
-        headers = {"User-Agent": "Mozilla/5.0"}
-        sentiment_data = {
-            "long_short_ratio": 1.0,
-            "taker_buy_vol": 0.0,
-            "taker_sell_vol": 0.0,
-            "taker_buy_sell_ratio": 1.0
-        }
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                # 1. Gọi Long/Short Ratio
-                async with session.get(url_ls, headers=headers, timeout=5) as resp:
-                    if resp.status == 200:
-                        res_json = await resp.json()
-                        data_list = res_json.get('data', [])
-                        if data_list:
-                            # Phần tử đầu tiên (index 0) là mới nhất: [timestamp, ratio]
-                            latest = data_list[0]
-                            sentiment_data["long_short_ratio"] = float(latest[1])
-                
-                # 2. Gọi Taker Volume
-                async with session.get(url_taker, headers=headers, timeout=5) as resp:
-                    if resp.status == 200:
-                        res_json = await resp.json()
-                        data_list = res_json.get('data', [])
-                        if data_list:
-                            # Phần tử đầu tiên (index 0) là mới nhất: [timestamp, buyVol, sellVol]
-                            latest = data_list[0]
-                            buy_vol = float(latest[1])
-                            sell_vol = float(latest[2])
-                            
-                            sentiment_data["taker_buy_vol"] = buy_vol
-                            sentiment_data["taker_sell_vol"] = sell_vol
-                            if sell_vol > 0:
-                                sentiment_data["taker_buy_sell_ratio"] = round(buy_vol / sell_vol, 4)
-                            else:
-                                sentiment_data["taker_buy_sell_ratio"] = 1.0
-                                
-            return sentiment_data
-        except Exception as e:
-            logger.error(f"Error fetching Rubik sentiment from OKX: {e}")
-            # Fallback mock sentiment
-            return sentiment_data
 

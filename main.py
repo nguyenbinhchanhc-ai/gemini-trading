@@ -112,13 +112,12 @@ async def run_bot_analysis() -> Dict[str, Any]:
         ohlcv_4h = await okx_service.get_market_data(limit=100, timeframe='4h')
         ohlcv_1d = await okx_service.get_market_data(limit=100, timeframe='1d')
         
-        # Cào thêm orderbook và sentiment
-        logger.info("Đang cào dữ liệu sổ lệnh (Orderbook) và tâm lý thị trường...")
+        # Cào thêm orderbook
+        logger.info("Đang cào dữ liệu sổ lệnh (Orderbook)...")
         orderbook_data = await okx_service.get_order_book(limit=20)
-        sentiment_data = await okx_service.get_rubik_sentiment()
         
         logger.info("Đang gửi dữ liệu phân tích kỹ thuật đa khung thời gian sang Gemini...")
-        analysis = await gemini_service.analyze_market(ohlcv, ohlcv_4h, ohlcv_1d, orderbook_data, sentiment_data)
+        analysis = await gemini_service.analyze_market(ohlcv, ohlcv_4h, ohlcv_1d, orderbook_data)
         
         bot_state["last_analysis_time"] = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
         bot_state["last_recommendation"] = analysis
@@ -185,9 +184,8 @@ async def realtime_data_task():
                 df = gemini_service.prepare_indicators(ohlcv)
                 current_row = df.iloc[-1]
                 
-                # Cào thêm orderbook và sentiment
+                # Cào thêm orderbook
                 orderbook_data = await okx_service.get_order_book(limit=20)
-                sentiment_data = await okx_service.get_rubik_sentiment()
                 
                 # Debug log to trace NaNs on Render
                 nan_status = {col: df[col].isna().sum() for col in df.columns}
@@ -219,15 +217,14 @@ async def realtime_data_task():
                     try:
                         # Gửi ticker
                         await ws.send_json({"type": "TICKER", "data": ticker_data})
-                        # Gửi indicators kèm orderbook và sentiment
+                        # Gửi indicators kèm orderbook
                         await ws.send_json({
                             "type": "INDICATORS", 
                             "data": {
                                 "symbol": config.TRADE_SYMBOL,
                                 "timeframe": config.TIMEFRAME,
                                 "indicators": indicators_data,
-                                "orderbook": orderbook_data,
-                                "sentiment": sentiment_data
+                                "orderbook": orderbook_data
                             }
                         })
                     except Exception:
@@ -280,9 +277,8 @@ async def get_indicators():
         current_row = df.iloc[-1]
         ticker_24h = await okx_service.get_ticker_24h()
         
-        # Cào thêm orderbook và sentiment
+        # Cào thêm orderbook
         orderbook_data = await okx_service.get_order_book(limit=20)
-        sentiment_data = await okx_service.get_rubik_sentiment()
         
         return {
             "status": "SUCCESS",
@@ -310,8 +306,7 @@ async def get_indicators():
                 "cmf": float(current_row['cmf']) if not pd.isna(current_row['cmf']) else None,
                 "obv": float(current_row['obv']) if not pd.isna(current_row['obv']) else None
             },
-            "orderbook": orderbook_data,
-            "sentiment": sentiment_data
+            "orderbook": orderbook_data
         }
     except Exception as e:
         logger.error(f"Error compiling technical indicators: {e}")

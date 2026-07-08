@@ -73,7 +73,7 @@ class GeminiService:
         
         return df
 
-    async def analyze_market(self, ohlcv_data: List[List[float]], ohlcv_4h: List[List[float]] = None, ohlcv_1d: List[List[float]] = None, orderbook_data: Dict[str, Any] = None, sentiment_data: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def analyze_market(self, ohlcv_data: List[List[float]], ohlcv_4h: List[List[float]] = None, ohlcv_1d: List[List[float]] = None, orderbook_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Gửi dữ liệu thị trường và các chỉ báo kỹ thuật đến Gemini qua OpenAI compatible API,
         yêu cầu phân tích và đưa ra quyết định mua/bán/giữ.
@@ -162,17 +162,7 @@ class GeminiService:
             else:
                 orderbook_context = "THÔNG TIN SỔ LỆNH: Không có dữ liệu\n"
 
-            sentiment_context = ""
-            if sentiment_data:
-                sentiment_context = (
-                    f"TÂM LÝ THỊ TRƯỜNG PHÁI SINH & TAKER FLOW (OKX RUBIK):\n"
-                    f"- Tỷ lệ tài khoản Long/Short: {sentiment_data['long_short_ratio']:.4f}\n"
-                    f"- Taker Volume mua chủ động: {sentiment_data['taker_buy_vol']:.2f} {coin}\n"
-                    f"- Taker Volume bán chủ động: {sentiment_data['taker_sell_vol']:.2f} {coin}\n"
-                    f"- Tỷ lệ Taker Mua/Bán chủ động (Taker Ratio): {sentiment_data['taker_buy_sell_ratio']:.4f}\n"
-                )
-            else:
-                sentiment_context = "TÂM LÝ THỊ TRƯỜNG: Không có dữ liệu\n"
+
 
             # Tính toán mốc TP/SL toán học gợi ý dựa trên biến động ATR hiện tại
             atr_val = current_row['atr']
@@ -232,7 +222,6 @@ THÔNG TIN KHUNG DÀI HẠN DAILY (1 NGÀY):
 {context_1d}
 
 {orderbook_context}
-{sentiment_context}
 
 MỐC TP/SL TOÁN HỌC GỢI Ý DỰA TRÊN ATR (Để tham khảo):
 - Nếu khuyên MUA (BUY): TP = {tp_buy_s:.2f} (Độ rộng 3*ATR) | SL = {sl_buy_s:.2f} (Độ rộng 2*ATR)
