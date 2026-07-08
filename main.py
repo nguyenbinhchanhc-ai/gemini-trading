@@ -259,8 +259,18 @@ async def chat_with_gemini(req: ChatRequest):
     Kênh trò chuyện trực tiếp với Gemini dựa trên bối cảnh thị trường thực tế
     """
     try:
-        ohlcv = await okx_service.get_market_data(limit=30)
-        response_text = await gemini_service.chat_response(req.message, ohlcv)
+        ohlcv = await okx_service.get_market_data(limit=300)
+        ohlcv_4h = await okx_service.get_market_data(limit=100, timeframe='4h')
+        ohlcv_1d = await okx_service.get_market_data(limit=100, timeframe='1d')
+        orderbook_data = await okx_service.get_order_book(limit=20)
+        
+        response_text = await gemini_service.chat_response(
+            user_message=req.message,
+            ohlcv_1h=ohlcv,
+            ohlcv_4h=ohlcv_4h,
+            ohlcv_1d=ohlcv_1d,
+            orderbook_data=orderbook_data
+        )
         return {"status": "SUCCESS", "response": response_text}
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")

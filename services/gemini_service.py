@@ -329,53 +329,115 @@ Nhiệm vụ:
                 "estimated_timeframe": "N/A",
                 "risk_percentage": 0
             }
-    async def chat_response(self, user_message: str, ohlcv_data: List[List[float]]) -> str:
+    async def chat_response(self, user_message: str, ohlcv_1h: List[List[float]], ohlcv_4h: List[List[float]] = None, ohlcv_1d: List[List[float]] = None, orderbook_data: Dict[str, Any] = None) -> str:
         """
         Trả lời câu hỏi của người dùng dựa trên ngữ cảnh dữ liệu thị trường hiện tại.
         """
         try:
-            df = self.prepare_indicators(ohlcv_data)
-            df_slice = df.tail(15).copy() # Lấy 15 nến làm bối cảnh nhanh
-            
+            # 1. Tính toán toàn bộ chỉ báo kỹ thuật từ nến 1h
+            df = self.prepare_indicators(ohlcv_1h)
+            current_row = df.iloc[-1]
+            coin = config.TRADE_SYMBOL.split('/')[0]
+
+            # Định dạng các text chỉ báo
+            rsi_text = "N/A" if pd.isna(current_row['rsi']) else f"{current_row['rsi']:.1f}"
+            macd_text = "N/A" if pd.isna(current_row['macd']) else f"{current_row['macd']:.2f}"
+            macd_sig_text = "N/A" if pd.isna(current_row['macd_signal']) else f"{current_row['macd_signal']:.2f}"
+            bb_high_text = "N/A" if pd.isna(current_row['bb_high']) else f"{current_row['bb_high']:.2f}"
+            bb_low_text = "N/A" if pd.isna(current_row['bb_low']) else f"{current_row['bb_low']:.2f}"
+            ema9_text = "N/A" if pd.isna(current_row['ema_9']) else f"{current_row['ema_9']:.2f}"
+            ema21_text = "N/A" if pd.isna(current_row['ema_21']) else f"{current_row['ema_21']:.2f}"
+            ema50_text = "N/A" if pd.isna(current_row['ema_50']) else f"{current_row['ema_50']:.2f}"
+            ema200_text = "N/A" if pd.isna(current_row['ema_200']) else f"{current_row['ema_200']:.2f}"
+            atr_text = "N/A" if pd.isna(current_row['atr']) else f"{current_row['atr']:.2f}"
+            stoch_k_text = "N/A" if pd.isna(current_row['stoch_k']) else f"{current_row['stoch_k']:.1f}"
+            stoch_d_text = "N/A" if pd.isna(current_row['stoch_d']) else f"{current_row['stoch_d']:.1f}"
+            adx_text = "N/A" if pd.isna(current_row['adx']) else f"{current_row['adx']:.1f}"
+            cmf_text = "N/A" if pd.isna(current_row['cmf']) else f"{current_row['cmf']:.2f}"
+            obv_text = "N/A" if pd.isna(current_row['obv']) else f"{current_row['obv']:.0f}"
+
+            # 2. Xây dựng bối cảnh nến 15 chu kỳ gần đây
+            df_slice = df.tail(15).copy()
             market_data_str = ""
             for idx, row in df_slice.iterrows():
-                rsi_val = 0.0 if pd.isna(row['rsi']) else row['rsi']
-                market_data_str += (
-                    f"Time: {row['datetime'].strftime('%m-%d %H:%M')}, "
-                    f"Close: {row['close']:.2f}, RSI: {rsi_val:.1f}\n"
-                )
-                
-            current_row = df.iloc[-1]
-            rsi_text = "N/A" if pd.isna(current_row['rsi']) else f"{current_row['rsi']:.1f}"
-            
-            system_prompt = (
-                "Bạn là một trợ lý AI phân tích kỹ thuật tài chính và chuyên gia về thị trường Crypto. "
-                "Bạn được tích hợp ngay sát bên biểu đồ của nhà đầu tư. Hãy trả lời câu hỏi của họ một cách trực tiếp, "
-                "ngắn gọn (khoảng 3-4 câu, đi thẳng vào vấn đề), thông minh và thực tế dựa trên dữ liệu kỹ thuật hiện tại được cung cấp. "
-                "Hãy trả lời bằng tiếng Việt thân thiện, khách quan, phân tích hai mặt và không khuyên bảo đầu tư mang tính rủi ro."
-            )
-            
-            user_prompt = f"""
-Dữ liệu thị trường hiện tại của {config.TRADE_SYMBOL}:
-- Giá đóng cửa gần nhất: {current_row['close']:.2f}
-- RSI (14) hiện tại: {rsi_text}
+                r_rsi = 0.0 if pd.isna(row['rsi']) else row['rsi']
+                market_data_str += f"Time: {row['datetime'].strftime('%m-%d %H:%M')}, Close: {row['close']:.2f}, RSI: {r_rsi:.1f}, Vol: {row['volume']:.2f}\n"
 
-Dữ liệu nến gần đây (15 chu kỳ):
+            # 3. Bối cảnh 4h
+            context_4h = "Không có dữ liệu 4h"
+            if ohlcv_4h:
+                df_4h = self.prepare_indicators(ohlcv_4h)
+                c_4h = df_4h.iloc[-1]
+                rsi_4h = "N/A" if pd.isna(c_4h['rsi']) else f"{c_4h['rsi']:.1f}"
+                context_4h = f"- Giá đóng cửa 4h gần nhất: {c_4h['close']:.2f} | RSI 4h: {rsi_4h}"
+
+            # 4. Bối cảnh Daily
+            context_1d = "Không có dữ liệu Daily"
+            if ohlcv_1d:
+                df_1d = self.prepare_indicators(ohlcv_1d)
+                c_1d = df_1d.iloc[-1]
+                rsi_1d = "N/A" if pd.isna(c_1d['rsi']) else f"{c_1d['rsi']:.1f}"
+                context_1d = f"- Giá đóng cửa Daily gần nhất: {c_1d['close']:.2f} | RSI Daily: {rsi_1d}"
+
+            # 5. Bối cảnh Sổ lệnh
+            orderbook_context = "Không có dữ liệu Sổ lệnh"
+            if orderbook_data:
+                orderbook_context = (
+                    f"THÔNG TIN SỔ LỆNH (ORDERBOOK REALTIME):\n"
+                    f"- Phân bổ Bid/Ask: BUY {orderbook_data['bid_percentage']}% vs SELL {orderbook_data['ask_percentage']}%\n"
+                    f"- Tường Mua (Support Wall): Giá {orderbook_data['strongest_bid_price']:.2f} (Vol: {orderbook_data['strongest_bid_vol']:.2f} {coin})\n"
+                    f"- Tường Bán (Resistance Wall): Giá {orderbook_data['strongest_ask_price']:.2f} (Vol: {orderbook_data['strongest_ask_vol']:.2f} {coin})"
+                )
+
+            # System Prompt định hình cách trả lời cực kỳ ngắn gọn của AI
+            system_prompt = (
+                "Bạn là một trợ lý AI phân tích kỹ thuật Price Action của hệ thống Gemini Quantum Trading. "
+                "Nhà đầu tư sẽ trò chuyện và hỏi bạn các câu hỏi về thị trường hoặc cặp coin hiện tại. "
+                "Nhiệm vụ của bạn là nghiên cứu toàn bộ dữ liệu kỹ thuật thời gian thực được cung cấp để trả lời câu hỏi của họ. "
+                "QUY TẮC PHẢN HỒI (BẮT BUỘC):\n"
+                "1. Trả lời đúng trọng tâm câu hỏi: Hỏi khung thời gian nào trả lời khung thời gian đó, hỏi chỉ báo nào giải thích chỉ báo đó.\n"
+                "2. Cực kỳ ngắn gọn, súc tích và dễ hiểu: Câu trả lời tối đa chỉ từ 3 đến 5 câu. Đi thẳng vào vấn đề, tuyệt đối KHÔNG nói dông dài lý thuyết, KHÔNG giới thiệu dài dòng.\n"
+                "3. Khách quan và thực tế: Dựa trên hành động giá (Price Action) và dữ liệu thật, không đoán mò hay giáo điều."
+            )
+
+            user_prompt = f"""
+DỮ LIỆU THÌ TRƯỜNG THỜI GIAN THỰC CỦA {config.TRADE_SYMBOL}:
+
+THÔNG TIN KHUNG NGẮN HẠN {config.TIMEFRAME} (HIỆN TẠI):
+- Giá đóng cửa gần nhất: {current_row['close']:.2f}
+- Khối lượng giao dịch (Volume nến hiện tại): {current_row['volume']:.2f} BTC
+- RSI (14): {rsi_text}
+- MACD Line: {macd_text} | MACD Signal: {macd_sig_text}
+- Bollinger Band High: {bb_high_text} | Bollinger Band Low: {bb_low_text}
+- EMA 9: {ema9_text} | EMA 21: {ema21_text} | EMA 50: {ema50_text} | EMA 200: {ema200_text}
+- ATR (14): {atr_text}
+- Stochastic %K: {stoch_k_text} | Stochastic %D: {stoch_d_text}
+- ADX (14): {adx_text}
+- CMF (20): {cmf_text}
+- OBV (Khối lượng lũy tích): {obv_text}
+
+BỐI CẢNH ĐA KHUNG THỜI GIAN VĨ MÔ:
+- Khung 4H: {context_4h}
+- Khung Daily: {context_1d}
+
+{orderbook_context}
+
+Dữ liệu nến 1h (15 chu kỳ gần nhất):
 {market_data_str}
 
-Câu hỏi của người dùng: "{user_message}"
+CÂU HỎI CỦA NHÀ ĐẦU TƯ: "{user_message}"
 
-Hãy trả lời câu hỏi trên dựa trên các dữ liệu kỹ thuật và bối cảnh thị trường này.
+Hãy đưa ra câu trả lời phân tích Price Action đúng trọng tâm, ngắn gọn và súc tích nhất (tối đa 3-5 câu):
 """
-            
-            logger.info("Sending chat query to local Gemini proxy...")
+
+            logger.info("Sending chat request with full context to local Gemini proxy...")
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7, # Nhiệt độ trung bình để câu trả lời tự nhiên hơn
+                temperature=0.3, # Nhiệt độ thấp để AI trả lời đúng trọng tâm và không lan man
             )
             
             return response.choices[0].message.content.strip()
